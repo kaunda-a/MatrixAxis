@@ -11,21 +11,30 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-      
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v1
+      - name: Setup build environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3.9 python3-pip ninja-build
+
+      - name: Build ungoogled-chromium
+        run: |
+          cd chromium/ungoogled-chromium
+          mkdir -p build/download_cache
+          ./utils/downloads.py retrieve -i downloads.ini -c build/download_cache
+          ./utils/downloads.py unpack -i downloads.ini -c build/download_cache build/src
+          ./utils/prune_binaries.py build/src pruning.list
+          ./utils/patches.py apply build/src patches
+          ./utils/domain_substitution.py apply -r domain_regex.list -f domain_substitution.list -c build/domsubcache.tar.gz build/src
+          cd build/src
+          ./tools/gn/bootstrap/bootstrap.py -o out/Default/gn
+          cp ../../flags.gn out/Default/args.gn
+          ./out/Default/gn gen out/Default
+          ninja -C out/Default chrome chromedriver
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Build and push
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          push: true
-          tags: ghcr.io/${{ github.repository }}/ungoogled-chromium:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          name: chromium-build
+          path: |
+            chromium/ungoogled-chromium/build/src/out/Default/chrome
+            chromium/ungoogled-chromium/build/src/out/Default/chromedriver

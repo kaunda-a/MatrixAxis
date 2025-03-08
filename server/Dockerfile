@@ -2,7 +2,6 @@ FROM python:3.9-slim-bullseye
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \
-    # Add only runtime dependencies here
     libatk1.0-0 \
     libatk-bridge2.0-0 \
     libcups2 \
@@ -18,9 +17,15 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy the pre-built Chromium from your local build
-COPY ./chromium/ungoogled-chromium/out/Default/chrome /usr/local/chromium/chrome
-COPY ./chromium/ungoogled-chromium/out/Default/chromedriver /usr/local/chromium/chromedriver
+# Create directory for Chromium
+RUN mkdir -p /usr/local/chromium
+
+# Copy the custom built Chromium
+COPY ./chromium/ungoogled-chromium/build/src/out/Default/chrome /usr/local/chromium/chrome
+COPY ./chromium/ungoogled-chromium/build/src/out/Default/chromedriver /usr/local/chromium/chromedriver
+
+# Set permissions
+RUN chmod +x /usr/local/chromium/chrome /usr/local/chromium/chromedriver
 
 # Set environment variable for Playwright
 ENV PLAYWRIGHT_CHROMIUM_PATH=/usr/local/chromium/chrome
