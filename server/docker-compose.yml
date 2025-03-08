@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  server:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - /app/chromium  # Keep this to prevent source code overwrites
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PLAYWRIGHT_CHROMIUM_PATH=/usr/local/chromium/chrome
+    deploy:
+      resources:
+        limits:
+          memory: 4G  # Reduced since we're not building
+        reservations:
+          memory: 2G
+
+# Remove the chromium-ccache volume since we're not building

@@ -1,0 +1,53 @@
+--- a/third_party/blink/renderer/core/frame/navigator.cc
++++ b/third_party/blink/renderer/core/frame/navigator.cc
+@@ +280,6 +280,14 @@ unsigned long Navigator::hardwareConcurrency() const {
++  if (RuntimeEnabledFeatures::FingerprintingWebGLProtection()) {
++    // Return standard 4 cores to prevent CPU fingerprinting
++    return 4;
++  }
++
+@@ +320,6 +320,14 @@ unsigned long long Navigator::deviceMemory() const {
++  if (RuntimeEnabledFeatures::FingerprintingWebGLProtection()) {
++    // Return standard 8GB memory to prevent memory fingerprinting
++    return 8;
++  }
+
+--- a/third_party/blink/renderer/core/timing/performance.cc
++++ b/third_party/blink/renderer/core/timing/performance.cc
+@@ +180,6 +180,25 @@ DOMHighResTimeStamp Performance::now() const {
++  if (RuntimeEnabledFeatures::FingerprintingWebGLProtection()) {
++    // Add random noise to timing measurements to prevent timing attacks
++    // and fingerprinting via high-precision timestamps
++    static thread_local std::random_device rd;
++    static thread_local std::mt19937 gen(rd());
++    static thread_local std::uniform_real_distribution<> noise(-0.1, 0.1);
++    
++    DOMHighResTimeStamp time = time_origin_.since_origin();
++    return time + noise(gen);
++  }
+
+@@ +250,6 +250,15 @@ PerformanceNavigationTiming* Performance::CreateNavigationTimingInstance() {
++  if (RuntimeEnabledFeatures::FingerprintingWebGLProtection()) {
++    // Normalize navigation timing data
++    auto* timing = MakeGarbageCollected<PerformanceNavigationTiming>();
++    timing->setDomComplete(100.0);
++    timing->setLoadEventEnd(150.0);
++    timing->setResponseEnd(50.0);
++    return timing;
++  }
+
+--- a/third_party/blink/renderer/core/frame/navigator_gpu.cc
++++ b/third_party/blink/renderer/core/frame/navigator_gpu.cc
+@@ +120,6 +120,20 @@ void NavigatorGPU::GetGPUInfo(ScriptPromiseResolver* resolver) {
++  if (RuntimeEnabledFeatures::FingerprintingWebGLProtection()) {
++    // Return standardized GPU info
++    GPUInfo gpu_info;
++    gpu_info.vendor_id = 0x10DE;  // NVIDIA
++    gpu_info.device_id = 0x2204;  // Generic GPU
++    gpu_info.vendor_string = "Standard GPU Vendor";
++    gpu_info.renderer_string = "Standard GPU Renderer";
++    gpu_info.driver_version = "1.0.0";
++    
++    resolver->Resolve(gpu_info);
++    return;
++  }

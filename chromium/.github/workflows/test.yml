@@ -1,0 +1,34 @@
+name: Run Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install dependencies
+      run: pip install -r .cirrus_requirements.txt
+        
+    - name: Run utils tests
+      run: |
+        python3 -m yapf --style '.style.yapf' -e '*/third_party/*' -rpd utils
+        ./devutils/run_utils_pylint.py --hide-fixme
+        ./devutils/run_utils_tests.sh
+        
+    - name: Run devutils tests
+      run: |
+        python3 -m yapf --style '.style.yapf' -e '*/third_party/*' -rpd devutils
+        ./devutils/run_devutils_pylint.py --hide-fixme
+        ./devutils/run_devutils_tests.sh
